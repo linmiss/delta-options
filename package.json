@@ -93,6 +93,6 @@
     }
   },
   "lint-staged": {
-    "src/**/*": "prettier --write --ignore-unknown --config .prettierrc"
+    "**/*": "prettier --write --ignore-unknown --config .prettierrc"
   }
 }
