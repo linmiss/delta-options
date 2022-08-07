@@ -71,7 +71,7 @@
     "test": "node scripts/test.js",
     "commit": "cz",
     "prepare": "husky install",
-    "prettier": "prettier --write --ignore-unknown --check 'src/**/*' --config .prettierrc"
+    "prettier": "prettier --write --ignore-unknown --config .prettierrc  '{contracts,src}/**/*'"
   },
   "browserslist": {
     "production": [
@@ -97,6 +97,6 @@
     }
   },
   "lint-staged": {
-    "**/*": "prettier --write --ignore-unknown --check 'src/**/*' --config .prettierrc"
+    "**/*": "prettier --write --ignore-unknown --config .prettierrc '{contracts,src}/**/*'"
   }
 }
