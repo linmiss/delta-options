@@ -3,6 +3,7 @@ pragma solidity ^0.8.9;
 
 import '@openzeppelin/contracts/utils/math/SafeMath.sol';
 import './interfaces/AggregatorV3Interface.sol';
+import './interfaces/IStdReference.sol';
 // Import this file to use console.log
 import 'hardhat/console.sol';
 
@@ -10,8 +11,7 @@ contract DeltaOption {
   // Overflow safe operations
   using SafeMath for uint256;
 
-  AggregatorV3Interface internal ethFeed;
-  AggregatorV3Interface internal croFeed;
+  IStdReference internal bandProtocolFeed;
 
   //Interface for LINK token functions
   // LinkTokenInterface internal LINK;
@@ -50,45 +50,29 @@ contract DeltaOption {
   }
 
   constructor() {
-    // ETH/USD Mainnet feed
-    ethFeed = AggregatorV3Interface(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419);
-    // CRO/USD Mainnet feed
-    croFeed = AggregatorV3Interface(0x00Cb80Cf097D9aA9A3779ad8EE7cF98437eaE050);
+    // Mainnet feed
+    bandProtocolFeed = IStdReference(
+      0xDA7a001b254CD22e46d3eAB04d937489c93174C3
+    );
 
     contractAddr = payable(address(this));
   }
 
-  function getCroPrice() public view returns (uint256) {
-    (
-      uint80 roundId,
-      int256 answer,
-      uint256 startedAt,
-      uint256 updatedAt,
-      uint80 answeredInRound
-    ) = croFeed.latestRoundData();
-
-    require(updatedAt - startedAt > 0, 'Round not complete');
-
-    return uint256(answer);
-  }
-
-  function getEthPrice() public view returns (uint256) {
-    (
-      uint80 roundId,
-      int256 answer,
-      uint256 startedAt,
-      uint256 updatedAt,
-      uint80 answeredInRound
-    ) = ethFeed.latestRoundData();
-
-    require(updatedAt - startedAt > 0, 'Round not complete');
-
-    return uint256(answer);
+  function getUSDPrice(string memory _token)
+    public
+    view
+    returns (uint256 rate)
+  {
+    IStdReference.ReferenceData memory data = bandProtocolFeed.getReferenceData(
+      _token,
+      'USD'
+    );
+    rate = data.rate;
   }
 
   function updatePrices() public {
-    ethPrice = getEthPrice();
-    croPrice = getCroPrice();
+    ethPrice = getUSDPrice('ETH');
+    croPrice = getUSDPrice('CRO');
   }
 
   // Using 18 digits for the “decimals”.
@@ -181,11 +165,11 @@ contract DeltaOption {
     bytes32 tokenHash = getTokenHash(token);
 
     if (tokenHash == ethHash) {
-      _exerciseOption(ethOptions, ID);
+      _exerciseOption(ethOptions, ID, ethPrice);
     }
 
     if (tokenHash == croHash) {
-      _exerciseOption(croOptions, ID);
+      _exerciseOption(croOptions, ID, croPrice);
     }
   }
 
@@ -254,22 +238,28 @@ contract DeltaOption {
     optionLists[ID].canceled = true;
   }
 
-  function _exerciseOption(option[] memory optionLists, uint256 ID) internal {
+  function _exerciseOption(
+    option[] memory optionLists,
+    uint256 ID,
+    uint256 tokenPrice
+  ) internal {
     require(optionLists[ID].buyer == msg.sender, 'You do not own this option');
     require(!optionLists[ID].exercised, 'Option has already been exercised');
     require(optionLists[ID].expiry > block.timestamp, 'Option is expired');
 
     updatePrices();
-    //Cost to exercise
-    uint256 exerciseValue = optionLists[ID].strike * optionLists[ID].amount;
 
     //Equivalent coin value using Chainlink feed
-    uint256 equivCoin = exerciseValue.div(ethPrice.mul(10**10)); //move decimal 10 places right to account for 8 places of pricefeed
+    uint256 latestCost = getLatestCost(
+      optionLists[ID].strike,
+      tokenPrice,
+      optionLists[ID].amount
+    ); //move decimal 10 places right to account for 8 places of pricefeed
 
     //Buyer exercises option by paying strike*amount equivalent coin value
-    require(msg.value == equivCoin, 'Incorrect coin amount sent to exercise');
+    require(msg.value == latestCost, 'Incorrect coin amount sent to exercise');
     //Pay writer the exercise cost
-    optionLists[ID].writer.transfer(equivCoin);
+    optionLists[ID].writer.transfer(latestCost);
     //Pay buyer contract amount of coin
     payable(msg.sender).transfer(optionLists[ID].amount);
     optionLists[ID].exercised = true;
@@ -296,5 +286,13 @@ contract DeltaOption {
 
   function getTokenHash(string memory token) public pure returns (bytes32) {
     return keccak256(abi.encodePacked(token));
+  }
+
+  function getEthOptions() public view returns (option[] memory) {
+    return ethOptions;
+  }
+
+  function getCroOptions() public view returns (option[] memory) {
+    return croOptions;
   }
 }

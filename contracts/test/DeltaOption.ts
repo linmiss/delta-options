@@ -21,7 +21,7 @@ describe('DeltaOption', function () {
 
   const bigNumberFrom = ethers.BigNumber.from
 
-  describe('Deployment', function () {
+  describe('Delta Options contract', function () {
     it('Should get option price', async function () {
       const { deltaOptionContract } = await loadFixture(deployDeltaOption)
 
@@ -46,6 +46,15 @@ describe('DeltaOption', function () {
           bigNumberFrom('1000000000000000000')
         )
       ).to.be.equal(bigNumberFrom('105882352'))
+    })
+
+    it('Get ETH price on Brand protocol feed', async () => {
+      const { deltaOptionContract } = await loadFixture(deployDeltaOption)
+
+      const price = await deltaOptionContract.getUSDPrice('ETH')
+      console.log(price)
+
+      expect(await deltaOptionContract.getUSDPrice('ETH')).to.be.equal(0)
     })
   })
 })
