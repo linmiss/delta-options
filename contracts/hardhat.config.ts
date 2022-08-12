@@ -11,6 +11,7 @@ const config: HardhatUserConfig = {
       url: 'https://evm-cronos.crypto.org',
     },
   },
+  defaultNetwork: 'localhost',
 }
 
 export default config

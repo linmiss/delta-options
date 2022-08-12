@@ -2,7 +2,6 @@
 pragma solidity ^0.8.9;
 
 import '@openzeppelin/contracts/utils/math/SafeMath.sol';
-import './interfaces/AggregatorV3Interface.sol';
 import './interfaces/IStdReference.sol';
 // Import this file to use console.log
 import 'hardhat/console.sol';
@@ -67,7 +66,8 @@ contract DeltaOption {
       _token,
       'USD'
     );
-    rate = data.rate;
+
+    return data.rate;
   }
 
   function updatePrices() public {
