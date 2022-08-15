@@ -149,11 +149,41 @@ contract DeltaOption {
     bytes32 tokenHash = getTokenHash(token);
 
     if (tokenHash == ethHash) {
-      _transferBuyer(ethOptions, ID);
+      require(
+        !ethOptions[ID].canceled,
+        'Option is canceled and cannot be bought'
+      );
+      require(
+        ethOptions[ID].expiry > block.timestamp,
+        'Option is expired and cannot be bought'
+      );
+      require(
+        msg.value == ethOptions[ID].premium,
+        'Incorrect amount of current coin sent for premium'
+      );
+
+      //Transfer premium payment to writer
+      ethOptions[ID].writer.transfer(ethOptions[ID].premium);
+      ethOptions[ID].buyer = payable(msg.sender);
     }
 
     if (tokenHash == croHash) {
-      _transferBuyer(croOptions, ID);
+      require(
+        !croOptions[ID].canceled,
+        'Option is canceled and cannot be bought'
+      );
+      require(
+        croOptions[ID].expiry > block.timestamp,
+        'Option is expired and cannot be bought'
+      );
+      require(
+        msg.value == croOptions[ID].premium,
+        'Incorrect amount of current coin sent for premium'
+      );
+
+      //Transfer premium payment to writer
+      croOptions[ID].writer.transfer(croOptions[ID].premium);
+      croOptions[ID].buyer = payable(msg.sender);
     }
   }
 
@@ -165,11 +195,55 @@ contract DeltaOption {
     bytes32 tokenHash = getTokenHash(token);
 
     if (tokenHash == ethHash) {
-      _exerciseOption(ethOptions, ID, ethPrice);
+      require(ethOptions[ID].buyer == msg.sender, 'You do not own this option');
+      require(!ethOptions[ID].exercised, 'Option has already been exercised');
+      require(ethOptions[ID].expiry > block.timestamp, 'Option is expired');
+
+      updatePrices();
+
+      //Equivalent coin value using Chainlink feed
+      uint256 latestCost = getLatestCost(
+        ethOptions[ID].strike,
+        ethPrice,
+        ethOptions[ID].amount
+      ); //move decimal 10 places right to account for 8 places of pricefeed
+
+      //Buyer exercises option by paying strike*amount equivalent coin value
+      require(
+        msg.value == latestCost,
+        'Incorrect coin amount sent to exercise'
+      );
+      //Pay writer the exercise cost
+      ethOptions[ID].writer.transfer(latestCost);
+      //Pay buyer contract amount of coin
+      payable(msg.sender).transfer(ethOptions[ID].amount);
+      ethOptions[ID].exercised = true;
     }
 
     if (tokenHash == croHash) {
-      _exerciseOption(croOptions, ID, croPrice);
+      require(croOptions[ID].buyer == msg.sender, 'You do not own this option');
+      require(!croOptions[ID].exercised, 'Option has already been exercised');
+      require(croOptions[ID].expiry > block.timestamp, 'Option is expired');
+
+      updatePrices();
+
+      //Equivalent coin value using Chainlink feed
+      uint256 latestCost = getLatestCost(
+        croOptions[ID].strike,
+        croPrice,
+        croOptions[ID].amount
+      ); //move decimal 10 places right to account for 8 places of pricefeed
+
+      //Buyer exercises option by paying strike*amount equivalent coin value
+      require(
+        msg.value == latestCost,
+        'Incorrect coin amount sent to exercise'
+      );
+      //Pay writer the exercise cost
+      croOptions[ID].writer.transfer(latestCost);
+      //Pay buyer contract amount of coin
+      payable(msg.sender).transfer(croOptions[ID].amount);
+      croOptions[ID].exercised = true;
     }
   }
 
@@ -181,11 +255,33 @@ contract DeltaOption {
     bytes32 tokenHash = getTokenHash(token);
 
     if (tokenHash == ethHash) {
-      _cancel(ethOptions, ID);
+      require(
+        msg.sender == ethOptions[ID].writer,
+        'You did not write this option'
+      );
+
+      //Must not have already been canceled or bought
+      require(
+        !ethOptions[ID].canceled && ethOptions[ID].buyer == address(0),
+        'This option cannot be canceled'
+      );
+      ethOptions[ID].writer.transfer(ethOptions[ID].amount);
+      ethOptions[ID].canceled = true;
     }
 
     if (tokenHash == croHash) {
-      _cancel(croOptions, ID);
+      require(
+        msg.sender == croOptions[ID].writer,
+        'You did not write this option'
+      );
+
+      //Must not have already been canceled or bought
+      require(
+        !croOptions[ID].canceled && croOptions[ID].buyer == address(0),
+        'This option cannot be canceled'
+      );
+      croOptions[ID].writer.transfer(croOptions[ID].amount);
+      croOptions[ID].canceled = true;
     }
   }
 
@@ -197,91 +293,38 @@ contract DeltaOption {
     bytes32 tokenHash = getTokenHash(token);
 
     if (tokenHash == ethHash) {
-      _retrieveExpiredOption(ethOptions, ID);
+      require(
+        msg.sender == ethOptions[ID].writer,
+        'You did not write this option'
+      );
+      //Must be expired, not exercised and not canceled
+      require(
+        ethOptions[ID].expiry <= block.timestamp &&
+          !ethOptions[ID].exercised &&
+          !ethOptions[ID].canceled,
+        'This option is not eligible for withdraw'
+      );
+      ethOptions[ID].writer.transfer(ethOptions[ID].amount);
+      //Repurposing canceled flag to prevent more than one withdraw
+      ethOptions[ID].canceled = true;
     }
 
     if (tokenHash == croHash) {
-      _retrieveExpiredOption(croOptions, ID);
+      require(
+        msg.sender == croOptions[ID].writer,
+        'You did not write this option'
+      );
+      //Must be expired, not exercised and not canceled
+      require(
+        croOptions[ID].expiry <= block.timestamp &&
+          !croOptions[ID].exercised &&
+          !croOptions[ID].canceled,
+        'This option is not eligible for withdraw'
+      );
+      croOptions[ID].writer.transfer(croOptions[ID].amount);
+      //Repurposing canceled flag to prevent more than one withdraw
+      croOptions[ID].canceled = true;
     }
-  }
-
-  function _retrieveExpiredOption(option[] memory optionLists, uint256 ID)
-    internal
-  {
-    require(
-      msg.sender == optionLists[ID].writer,
-      'You did not write this option'
-    );
-    //Must be expired, not exercised and not canceled
-    require(
-      optionLists[ID].expiry <= block.timestamp &&
-        !optionLists[ID].exercised &&
-        !optionLists[ID].canceled,
-      'This option is not eligible for withdraw'
-    );
-    optionLists[ID].writer.transfer(optionLists[ID].amount);
-    //Repurposing canceled flag to prevent more than one withdraw
-    optionLists[ID].canceled = true;
-  }
-
-  function _cancel(option[] memory optionLists, uint256 ID) internal {
-    require(
-      msg.sender == optionLists[ID].writer,
-      'You did not write this option'
-    );
-    //Must not have already been canceled or bought
-    require(
-      !optionLists[ID].canceled && optionLists[ID].buyer == address(0),
-      'This option cannot be canceled'
-    );
-    optionLists[ID].writer.transfer(optionLists[ID].amount);
-    optionLists[ID].canceled = true;
-  }
-
-  function _exerciseOption(
-    option[] memory optionLists,
-    uint256 ID,
-    uint256 tokenPrice
-  ) internal {
-    require(optionLists[ID].buyer == msg.sender, 'You do not own this option');
-    require(!optionLists[ID].exercised, 'Option has already been exercised');
-    require(optionLists[ID].expiry > block.timestamp, 'Option is expired');
-
-    updatePrices();
-
-    //Equivalent coin value using Chainlink feed
-    uint256 latestCost = getLatestCost(
-      optionLists[ID].strike,
-      tokenPrice,
-      optionLists[ID].amount
-    ); //move decimal 10 places right to account for 8 places of pricefeed
-
-    //Buyer exercises option by paying strike*amount equivalent coin value
-    require(msg.value == latestCost, 'Incorrect coin amount sent to exercise');
-    //Pay writer the exercise cost
-    optionLists[ID].writer.transfer(latestCost);
-    //Pay buyer contract amount of coin
-    payable(msg.sender).transfer(optionLists[ID].amount);
-    optionLists[ID].exercised = true;
-  }
-
-  function _transferBuyer(option[] memory optionLists, uint256 ID) internal {
-    require(
-      !optionLists[ID].canceled,
-      'Option is canceled and cannot be bought'
-    );
-    require(
-      optionLists[ID].expiry > block.timestamp,
-      'Option is expired and cannot be bought'
-    );
-    require(
-      msg.value == optionLists[ID].premium,
-      'Incorrect amount of current coin sent for premium'
-    );
-
-    //Transfer premium payment to writer
-    optionLists[ID].writer.transfer(optionLists[ID].premium);
-    optionLists[ID].buyer = payable(msg.sender);
   }
 
   function getTokenHash(string memory token) public pure returns (bytes32) {

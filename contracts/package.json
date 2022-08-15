@@ -2,8 +2,8 @@
   "name": "DeltaOption",
   "scripts": {
     "test": "npx hardhat test",
-    "deploy:local": "npx hardhat run --network localhost scripts/deploy.ts",
-    "deploy:cronos": "npx hardhat run --network cronos scripts/deploy.ts"
+    "deploy:local": "npx hardhat run --network localhost scripts/deploy.ts && node ../scripts/updateContractABI.js",
+    "deploy:cronos": "npx hardhat run --network cronos scripts/deploy.ts && node ../scripts/updateContractABI.js"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^1.0.2",
