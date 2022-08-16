@@ -81,7 +81,7 @@ contract DeltaOption {
     uint256 spot,
     uint256 tknAmt
   ) public pure returns (uint256) {
-    return strike.mul(tknAmt).div(spot.mul(10**10));
+    return strike.mul(tknAmt).div(spot);
   }
 
   /**

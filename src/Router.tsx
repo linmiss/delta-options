@@ -10,7 +10,7 @@ function Routers() {
   return (
     <Router>
       <Route path="/" component={Header} />
-      <div className="px-12 pt-4 w-5/6 h-screen mx-auto">
+      <div className="px-12 pt-4 w-4/6 h-screen mx-auto">
         <Route exact path="/writeOptions" component={WriteOptions} />
         <Route exact path="/optionLists" component={OptionList} />
         <Route exact path="/ownedOptions" component={OwnedOptions} />

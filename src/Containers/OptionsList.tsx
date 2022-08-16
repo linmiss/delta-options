@@ -30,7 +30,7 @@ export default function OptionsList() {
 
   const handleCancelOption = async (id: number, premium: string) => {
     if (deltaOptionContract) {
-      await deltaOptionContract.buyOption('ETH', id, {
+      await deltaOptionContract.buyOption('CRO', id, {
         value: formatDecimals(premium),
       })
     }

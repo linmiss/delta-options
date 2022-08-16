@@ -12,14 +12,14 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { styled } from '@mui/material/styles'
 
 import getTime from 'date-fns/getTime'
-import * as ethers from 'ethers'
 
 import { deltaOptionContract } from '../common/ethProvider'
 import ColorButton from '../Components/ColorButton'
 import { formatDecimals } from '../utils/getOptionLists'
 
 const Item = styled(Paper)(({ theme }) => ({
-  backgroundColor: theme.palette.mode === 'dark' ? '#1A2027' : '#fff',
+  backgroundColor:
+    theme.palette.mode === 'dark' ? '#1A2027' : theme.palette.secondary.light,
   ...theme.typography.body2,
   padding: theme.spacing(2),
   textAlign: 'left',
@@ -29,24 +29,22 @@ const Item = styled(Paper)(({ theme }) => ({
 
 const coins = [
   {
-    value: 'ETH',
-    label: 'ETH',
-  },
-  {
     value: 'CRO',
     label: 'CRO',
   },
+  // {
+  //   value: 'ETH',
+  //   label: 'ETH',
+  // },
 ]
 
 export default function WriteOptions() {
   const [isOpenSnackBar, setOpenSnackBar] = useState<boolean>(false)
   const [currency, setCurrency] = useState<string>(coins[0].value)
-  const [strikePrice, setStrikePrice] = useState<string>('2000')
-  const [premium, setPremium] = useState<string>('1')
-  const [tokenAmount, setTokenAmount] = useState<string>('10')
-  const [expiry, setExpiry] = React.useState<Date | null>(
-    new Date('2022-08-18T21:11:54')
-  )
+  const [strikePrice, setStrikePrice] = useState<string>('')
+  const [premium, setPremium] = useState<string>('')
+  const [tokenAmount, setTokenAmount] = useState<string>('')
+  const [expiry, setExpiry] = React.useState<Date | null>(new Date())
 
   const handleExpiryChange = (newValue: Date | null) => {
     setExpiry(newValue)
@@ -66,17 +64,21 @@ export default function WriteOptions() {
   }
 
   const handleSubmit = async () => {
-    if (expiry) {
-      const result = await deltaOptionContract.writeOption(
-        currency,
-        formatDecimals(strikePrice),
-        formatDecimals(premium),
-        getTime(expiry),
-        formatDecimals(tokenAmount),
-        {
-          value: formatDecimals(tokenAmount),
-        }
-      )
+    try {
+      if (expiry) {
+        const result = await deltaOptionContract.writeOption(
+          currency,
+          formatDecimals(strikePrice),
+          formatDecimals(premium),
+          getTime(expiry),
+          formatDecimals(tokenAmount),
+          {
+            value: formatDecimals(tokenAmount),
+          }
+        )
+      }
+    } catch (error) {
+      console.log(error)
     }
   }
 

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import List from '@mui/material/List'
 import ListItem from '@mui/material/ListItem'
-
 import Divider from '@mui/material/Divider'
 import { deepOrange, blue, purple } from '@mui/material/colors'
+import { formatDecimals } from '../utils/getOptionLists'
+
 import ListItems, { IOptions } from '../Components/ListItem'
 import { deltaOptionContract } from '../common/ethProvider'
 
@@ -32,7 +33,44 @@ export default function OwnedOptions() {
 
   const handleCancelOption = async (id: number) => {
     if (deltaOptionContract) {
-      await deltaOptionContract.cancelOption('ETH', id)
+      await deltaOptionContract.cancelOption('CRO', id)
+    }
+  }
+
+  const handleExerciseOption = async (
+    strike: string,
+    amount: string,
+    id: number
+  ) => {
+    try {
+      if (deltaOptionContract) {
+        const ethPrice = await deltaOptionContract.getUSDPrice('CRO')
+
+        const latestCost = await deltaOptionContract.getLatestCost(
+          formatDecimals(strike),
+          ethPrice,
+          formatDecimals(amount)
+        )
+
+        await deltaOptionContract.exercise('CRO', id, {
+          value: latestCost,
+        })
+      }
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  const handleClickRetrieve = async (id: number) => {
+    try {
+      if (deltaOptionContract) {
+        const ethPrice = await deltaOptionContract.retrieveExpiredFunds(
+          'CRO',
+          id
+        )
+      }
+    } catch (error) {
+      console.log(error)
     }
   }
 
@@ -84,6 +122,9 @@ export default function OwnedOptions() {
               }
               bgcolor={blue[500]}
               hovercolor={blue[700]}
+              onClick={() => {
+                handleExerciseOption(option.strike, option.amount, option.id)
+              }}
             >
               Exercise
             </ColorButton>
@@ -97,11 +138,14 @@ export default function OwnedOptions() {
               disabled={
                 option.exercised ||
                 option.canceled ||
-                (option.writer === walletAddress &&
-                  Date.now() <= new Date(option.expiry).getTime())
+                option.writer !== walletAddress ||
+                Date.now() <= new Date(option.expiry).getTime()
               }
               bgcolor={purple[500]}
               hovercolor={purple[700]}
+              onClick={() => {
+                handleClickRetrieve(option.id)
+              }}
             >
               Retrieve expired fund
             </ColorButton>

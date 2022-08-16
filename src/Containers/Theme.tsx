@@ -4,15 +4,19 @@ const theme = createTheme({
   palette: {
     primary: {
       // light: 这将从 palette.primary.main 中进行计算，
-      main: '#ff4400',
+      main: '#5bccf6',
       // dark: 这将从 palette.primary.main 中进行计算，
       // contrastText: 这将计算与 palette.primary.main 的对比度
     },
     secondary: {
-      light: '#0066ff',
-      main: '#0044ff',
+      light: 'white',
+      main: '#fcde67',
       // dark: 这将从 palette.secondary.main 中进行计算，
       contrastText: '#ffcc00',
+    },
+    text: {
+      primary: '#030e12',
+      secondary: '#030e12',
     },
     // 使用 `getContrastText()` 来最大化
     // 背景和文本的对比度
