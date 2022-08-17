@@ -137,7 +137,13 @@ const ResponsiveAppBar = () => {
               <Button
                 key={path}
                 onClick={() => handleChangeItem(path)}
-                sx={{ my: 2, color: 'white', display: 'block' }}
+                sx={{
+                  my: 2,
+                  color: 'white',
+                  display: 'block',
+                  textTransform: 'none',
+                  fontWeight: 'bold',
+                }}
               >
                 {text}
               </Button>

@@ -74,6 +74,12 @@ export default function OwnedOptions() {
     }
   }
 
+  if (!ethOptionLists.length) {
+    return (
+      <div className="w-full text-center font-bold text-3xl mt-10">Empty</div>
+    )
+  }
+
   return (
     <List
       sx={{
@@ -130,7 +136,7 @@ export default function OwnedOptions() {
             </ColorButton>
 
             <ColorButton
-              width="15%"
+              width="16%"
               variant="contained"
               sx={{
                 marginLeft: '10px',
@@ -147,7 +153,7 @@ export default function OwnedOptions() {
                 handleClickRetrieve(option.id)
               }}
             >
-              Retrieve expired fund
+              Retrieve Expired Fund
             </ColorButton>
           </ListItem>
           {ethOptionLists.length - 1 !== index && (

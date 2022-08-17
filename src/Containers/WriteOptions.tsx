@@ -7,11 +7,13 @@ import TextField from '@mui/material/TextField'
 import MenuItem from '@mui/material/MenuItem'
 import Paper from '@mui/material/Paper'
 import { DesktopDatePicker } from '@mui/x-date-pickers/DesktopDatePicker'
+
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { styled } from '@mui/material/styles'
 
 import getTime from 'date-fns/getTime'
+import addDay from 'date-fns/addDays'
 
 import { deltaOptionContract } from '../common/ethProvider'
 import ColorButton from '../Components/ColorButton'
@@ -44,7 +46,7 @@ export default function WriteOptions() {
   const [strikePrice, setStrikePrice] = useState<string>('')
   const [premium, setPremium] = useState<string>('')
   const [tokenAmount, setTokenAmount] = useState<string>('')
-  const [expiry, setExpiry] = React.useState<Date | null>(new Date())
+  const [expiry, setExpiry] = React.useState<Date | null>(addDay(new Date(), 1))
 
   const handleExpiryChange = (newValue: Date | null) => {
     setExpiry(newValue)
@@ -66,7 +68,7 @@ export default function WriteOptions() {
   const handleSubmit = async () => {
     try {
       if (expiry) {
-        const result = await deltaOptionContract.writeOption(
+        await deltaOptionContract.writeOption(
           currency,
           formatDecimals(strikePrice),
           formatDecimals(premium),
@@ -88,9 +90,8 @@ export default function WriteOptions() {
         <Stack>
           <Item>
             <TextField
-              // id="outlined-select-currency"
               select
-              label="token"
+              label="Token"
               value={currency}
               onChange={handleChange}
               helperText="Please select your want to write option coin"
@@ -105,7 +106,7 @@ export default function WriteOptions() {
 
           <Item>
             <TextField
-              label="strike price"
+              label="Strike price"
               type="number"
               value={strikePrice}
               helperText="Please write spot strike price"
@@ -118,7 +119,7 @@ export default function WriteOptions() {
 
           <Item>
             <TextField
-              label="premium"
+              label="Premium"
               type="number"
               value={premium}
               helperText="Fee in contract token that option writer charges"
@@ -132,9 +133,10 @@ export default function WriteOptions() {
           <Item>
             <LocalizationProvider dateAdapter={AdapterDateFns}>
               <DesktopDatePicker
-                label="Date desktop"
+                label="Expiry"
                 value={expiry}
                 inputFormat="MM/dd/yyyy"
+                minDate={addDay(new Date(), 1)}
                 onChange={handleExpiryChange}
                 renderInput={(params) => <TextField {...params} />}
               />
@@ -143,7 +145,7 @@ export default function WriteOptions() {
 
           <Item>
             <TextField
-              label="token amount"
+              label="Token amount"
               type="number"
               value={tokenAmount}
               helperText="How many tokens the contract is for"

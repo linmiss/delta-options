@@ -69,6 +69,6 @@ export default function OptionsList() {
       ))}
     </List>
   ) : (
-    <span className="w-full text-center">empty</span>
+    <div className="w-full text-center font-bold text-3xl mt-10">Empty</div>
   )
 }

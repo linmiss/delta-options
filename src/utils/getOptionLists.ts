@@ -13,7 +13,7 @@ export default async function getOptionLists() {
         ethers.utils.formatUnits(num, 18)
 
       address = await signer?.getAddress()
-      const data = await deltaOptionContract.getEthOptions()
+      const data = await deltaOptionContract.getCroOptions()
 
       data?.forEach((item: any) => {
         optionLists.push({
